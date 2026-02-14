@@ -7,6 +7,10 @@ export default {
   ],
   theme: {
   	extend: {
+      	fontFamily: {
+        	sans: ['"Instrument Sans"', 'system-ui', 'sans-serif'],
+        	display: ['"Fraunces"', 'serif'],
+      	},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',

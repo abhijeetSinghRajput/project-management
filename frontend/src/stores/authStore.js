@@ -4,11 +4,12 @@ import api from '../lib/api';
 
 export const useAuthStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
       isLoading: false,
+      isBootstrapped: false,
       error: null,
 
       // Register
@@ -52,7 +53,12 @@ export const useAuthStore = create(
       },
 
       // Logout
-      logout: () => {
+      logout: async () => {
+        try {
+          await api.post('/auth/logout');
+        } catch (error) {
+          // Ignore logout errors
+        }
         localStorage.removeItem('token');
         set({
           user: null,
@@ -70,6 +76,33 @@ export const useAuthStore = create(
         } catch (error) {
           set({ user: null, isAuthenticated: false });
         }
+      },
+
+      refreshSession: async () => {
+        try {
+          const { data } = await api.post('/auth/refresh');
+          localStorage.setItem('token', data.token);
+          set({
+            user: data.user,
+            token: data.token,
+            isAuthenticated: true,
+          });
+          return data;
+        } catch (error) {
+          localStorage.removeItem('token');
+          set({ user: null, token: null, isAuthenticated: false });
+          return null;
+        }
+      },
+
+      bootstrap: async () => {
+        set({ isLoading: true });
+        const token = localStorage.getItem('token');
+        if (token) {
+          set({ token });
+          await get().refreshSession();
+        }
+        set({ isBootstrapped: true, isLoading: false });
       },
 
       // Clear error
