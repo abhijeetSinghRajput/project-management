@@ -2,6 +2,9 @@
 
 Production-ready task management system with role-based access control, real-time updates, and modern UI.
 
+![Drag and drop](screenshots/drag-and-drop.gif)
+![Create task](screenshots/create-task.gif)
+
 ## 🚀 Tech Stack
 
 ### Backend
