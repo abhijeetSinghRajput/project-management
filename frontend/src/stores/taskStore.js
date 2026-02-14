@@ -11,6 +11,7 @@ export const useTaskStore = create((set, get) => ({
     priority: '',
     search: '',
   },
+  setTasks: (tasks) => set({ tasks }),
 
   // Fetch tasks
   fetchTasks: async (params = {}) => {
@@ -31,10 +32,21 @@ export const useTaskStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { data } = await api.post('/tasks', taskData);
-      set((state) => ({
-        tasks: [data.data, ...state.tasks],
-        isLoading: false,
-      }));
+      set((state) => {
+        const exists = state.tasks.some((task) => task._id === data.data._id);
+        if (exists) {
+          return {
+            tasks: state.tasks.map((task) =>
+              task._id === data.data._id ? data.data : task
+            ),
+            isLoading: false,
+          };
+        }
+        return {
+          tasks: [data.data, ...state.tasks],
+          isLoading: false,
+        };
+      });
       return data.data;
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to create task';
@@ -102,6 +114,24 @@ export const useTaskStore = create((set, get) => ({
       tasks: state.tasks.map((task) =>
         task._id === id ? { ...task, ...updates } : task
       ),
+    }));
+  },
+
+  upsertTask: (task) => {
+    set((state) => {
+      const existing = state.tasks.find((item) => item._id === task._id);
+      if (existing) {
+        return {
+          tasks: state.tasks.map((item) => (item._id === task._id ? task : item)),
+        };
+      }
+      return { tasks: [task, ...state.tasks] };
+    });
+  },
+
+  removeTaskById: (id) => {
+    set((state) => ({
+      tasks: state.tasks.filter((task) => task._id !== id),
     }));
   },
 }));

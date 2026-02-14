@@ -7,7 +7,7 @@ Production-ready task management system with role-based access control, real-tim
 ### Backend
 - **Node.js** + Express
 - **MongoDB** + Mongoose
-- **JWT** Authentication
+- **JWT** Authentication + refresh tokens
 - **Socket.io** for real-time updates
 - **Helmet** + Rate limiting for security
 
@@ -37,7 +37,7 @@ npm install
 
 # Frontend
 cd ../frontend
-npm install axios zustand @dnd-kit/core @dnd-kit/sortable socket.io-client react-router-dom react-hot-toast lucide-react
+npm install axios zustand @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities socket.io-client react-router-dom react-hot-toast lucide-react
 ```
 
 ### 2. Environment Setup
@@ -47,7 +47,8 @@ npm install axios zustand @dnd-kit/core @dnd-kit/sortable socket.io-client react
 PORT=5000
 MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/taskflow
 JWT_SECRET=your-super-secret-key
-JWT_EXPIRE=7d
+JWT_EXPIRE=15m
+REFRESH_TOKEN_DAYS=30
 NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
 ```
@@ -76,10 +77,10 @@ Access: http://localhost:5173
 ## 📋 Features Implemented
 
 ### ✅ Authentication
-- User registration with role selection (Admin/Manager/User)
-- JWT-based login/logout
-- Protected routes
-- Persistent sessions
+- User registration (role defaults to user)
+- JWT-based login/logout with refresh tokens
+- Protected routes + session bootstrap
+- HttpOnly refresh cookies
 
 ### ✅ Task Management
 - Create, Read, Update, Delete tasks
@@ -93,6 +94,10 @@ Access: http://localhost:5173
 - **Admin**: Full access to all tasks
 - **Manager**: Access to team tasks
 - **User**: Access to own/assigned tasks
+
+### ✅ Role-Based UI
+- Admin/Manager can manage roles
+- Users see only assigned/created tasks
 
 ### ✅ Real-time Updates
 - Socket.io integration
@@ -119,7 +124,14 @@ Access: http://localhost:5173
 ```
 POST   /api/auth/register  - Register new user
 POST   /api/auth/login     - Login user
+POST   /api/auth/refresh   - Refresh access token
+POST   /api/auth/logout    - Logout user
 GET    /api/auth/me        - Get current user (Protected)
+GET    /api/auth/users     - List users (Admin/Manager)
+GET    /api/auth/users/:id - Get user (Admin/Manager)
+PATCH  /api/auth/users/:id - Update user (Admin/Manager)
+PATCH  /api/auth/users/:id/role - Update role (Admin/Manager)
+DELETE /api/auth/users/:id - Soft delete user (Admin)
 ```
 
 ### Tasks
@@ -156,7 +168,11 @@ koders-auth/
 │   │   └── tasks.js
 │   ├── services/
 │   │   └── authService.js
+│   ├── tests/
+│   │   ├── auth.test.js
+│   │   └── tasks.test.js
 │   ├── db.js
+│   ├── app.js
 │   ├── index.js
 │   └── .env
 │
@@ -169,23 +185,22 @@ koders-auth/
     │   ├── pages/
     │   │   ├── Login.jsx
     │   │   ├── Register.jsx
-    │   │   └── Dashboard.jsx (TO BUILD)
+    │   │   └── Dashboard.jsx
     │   ├── lib/
-    │   │   └── api.js (Axios)
+    │   │   ├── api.js (Axios)
+    │   │   └── socket.js (Socket.io client)
     │   └── App.jsx
     └── .env
 ```
 
 ## 🧪 Testing
 
-### Test User Credentials
-```
-Email: admin@demo.com
-Password: password123
-Role: admin
-```
+Run backend tests:
 
-Create this user via register endpoint or manually in MongoDB.
+```bash
+cd backend
+npm test
+```
 
 ## 🚢 Deployment
 
@@ -203,19 +218,6 @@ Create this user via register endpoint or manually in MongoDB.
 
 ### MongoDB
 Use MongoDB Atlas (free tier): https://cloud.mongodb.com
-
-## 📝 Next Steps (Frontend UI)
-
-Still need to build:
-1. **Dashboard** - Kanban board with drag & drop
-2. **Task Card** - Individual task component
-3. **Create/Edit Modal** - Task form
-4. **Filters** - Status, priority, search
-5. **Stats Cards** - Task count by status
-6. **Navbar** - User menu, logout
-
-**Files Created**: 17/20 ✅
-**Time Remaining**: ~40 minutes for UI components
 
 ## 🐛 Troubleshooting
 

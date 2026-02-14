@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Task from '../models/Task.js';
 
 // @desc    Get all tasks
@@ -7,25 +8,31 @@ export const getTasks = async (req, res) => {
   try {
     const { status, priority, page = 1, limit = 20, sort = '-createdAt', search } = req.query;
 
-    // Build query
     const query = { isDeleted: false };
+    const andConditions = [];
 
-    // Role-based filtering
     if (req.user.role === 'user') {
-      query.$or = [
-        { createdBy: req.user.id },
-        { assignedTo: req.user.id },
-      ];
+      andConditions.push({
+        $or: [
+          { createdBy: req.user.id },
+          { assignedTo: req.user.id },
+        ],
+      });
     }
 
-    // Filters
     if (status) query.status = status;
     if (priority) query.priority = priority;
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-      ];
+      andConditions.push({
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+        ],
+      });
+    }
+
+    if (andConditions.length) {
+      query.$and = andConditions;
     }
 
     // Execute query with pagination
@@ -102,6 +109,13 @@ export const getTask = async (req, res) => {
 // @access  Private
 export const createTask = async (req, res) => {
   try {
+    if (req.user.role === 'user' && req.body.assignedTo && req.body.assignedTo !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Users can only assign tasks to themselves',
+      });
+    }
+
     const task = await Task.create({
       ...req.body,
       createdBy: req.user.id,
@@ -149,6 +163,13 @@ export const updateTask = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this task',
+      });
+    }
+
+    if (req.user.role === 'user' && req.body.assignedTo && req.body.assignedTo !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Users can only assign tasks to themselves',
       });
     }
 
@@ -223,9 +244,10 @@ export const getTaskStats = async (req, res) => {
     const query = { isDeleted: false };
 
     if (req.user.role === 'user') {
+      const userId = new mongoose.Types.ObjectId(req.user.id);
       query.$or = [
-        { createdBy: req.user.id },
-        { assignedTo: req.user.id },
+        { createdBy: userId },
+        { assignedTo: userId },
       ];
     }
 

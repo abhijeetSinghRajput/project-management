@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './components/ThemeProvider';
@@ -6,9 +7,15 @@ import PublicRoute from './components/PublicRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import { ModeToggle } from './components/ModeToggle';
+import { useAuthStore } from './stores/authStore';
 
 function App() {
+  const { bootstrap } = useAuthStore();
+
+  useEffect(() => {
+    bootstrap();
+  }, [bootstrap]);
+
   return (
     <ThemeProvider defaultTheme="light" storageKey="taskflow-theme">
       <BrowserRouter>

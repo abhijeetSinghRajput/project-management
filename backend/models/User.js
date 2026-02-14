@@ -30,11 +30,30 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    refreshTokenHash: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    refreshTokenExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+userSchema.index({ email: 1, isDeleted: 1 });
+userSchema.index({ role: 1, isDeleted: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function () {
