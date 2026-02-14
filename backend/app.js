@@ -5,10 +5,14 @@ import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import path from "path";
+
 import authRoutes from "./routes/auth.js";
 import taskRoutes from "./routes/tasks.js";
 
-export const createApp = (options = {}) => {
+const __dirname = path.resolve();
+
+export const createApp = () => {
   const app = express();
   const httpServer = createServer(app);
 
@@ -21,6 +25,7 @@ export const createApp = (options = {}) => {
 
   app.set("io", io);
 
+  // Security middlewares
   app.use(helmet());
   app.use(
     cors({
@@ -28,20 +33,25 @@ export const createApp = (options = {}) => {
       credentials: true,
     }),
   );
+
   app.use(cookieParser());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Rate limiter
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
     message: "Too many requests from this IP, please try again later",
   });
+
   app.use("/api/", limiter);
 
+  // API routes
   app.use("/api/auth", authRoutes);
   app.use("/api/tasks", taskRoutes);
 
+  // Health check
   app.get("/health", (req, res) => {
     res.json({
       success: true,
@@ -50,30 +60,28 @@ export const createApp = (options = {}) => {
     });
   });
 
-  // app.get('/', (req, res) => {
-  //   res.json({
-  //     success: true,
-  //     message: 'TaskFlow API',
-  //     version: '1.0.0',
-  //   });
-  // });
-
-  // Serve frontend in production
+  // ==============================
+  // SERVE FRONTEND IN PRODUCTION
+  // ==============================
   if (process.env.NODE_ENV === "production") {
-    app.use(express.static(path.join(__dirname, "../frontend/dist")));
+    const frontendPath = path.join(__dirname, "../../frontend/dist");
+
+    app.use(express.static(frontendPath));
 
     app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+      res.sendFile(path.join(frontendPath, "index.html"));
+    });
+  } else {
+    // 404 handler (only for API when not production frontend route)
+    app.use((req, res) => {
+      res.status(404).json({
+        success: false,
+        message: "Route not found",
+      });
     });
   }
 
-  app.use((req, res) => {
-    res.status(404).json({
-      success: false,
-      message: "Route not found",
-    });
-  });
-
+  // Global error handler
   app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(err.statusCode || 500).json({
@@ -82,6 +90,7 @@ export const createApp = (options = {}) => {
     });
   });
 
+  // Socket.io
   io.on("connection", (socket) => {
     console.log("✅ Client connected:", socket.id);
 
